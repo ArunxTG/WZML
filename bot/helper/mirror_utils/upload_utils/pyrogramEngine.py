@@ -240,51 +240,6 @@ class TgUploader:
                 self.__up_path = new_path
         return cap_mono, file_
 
-    async def __prepare_filex(self, file_1, dirpath):
-        user_id = self.__listener.message.from_user.id
-        user_dict = user_data.get(user_id, {})
-      
-        lprefix = user_dict.get('lprefix', '@OMG') 
-          
-        file_1 = re_sub(r'www\S+', '', file_1)
-
-          
-        if lprefix:
-            lprefix = lprefix.replace('\s', ' ')
-            lprefix = re_sub(r'<.*?>', '', lprefix).replace('\s', ' ')
-            if not file_.startswith(lprefix):
-                file_1 = f"{lprefix}{file_1}"
-             
-        else:
-            cap_mono1 = f"<b>{file_1}</b>" 
-          
-        if len(file_1) > 60:
-            if is_archive(file_):
-                name = get_base_name(file_1)
-                ext = file_1.split(name, 1)[1]
-            elif match := re_match(r".+(?=\..+\.0*\d+$)|.+(?=\.part\d+\..+$)", file_1):
-                name = match.group(0)
-                ext = file_1.split(name, 1)[1]
-            elif len(fsplit := ospath.splitext(file_1)) > 1:
-                name = fsplit[0]
-                ext = fsplit[1]
-            else:
-                name = file_1
-                ext = ''
-            extn = len(ext)
-            remain = 60 - extn
-            name = name[:remain]
-            if self.__listener.seed and not self.__listener.newDir and not dirpath.endswith("/splited_files_z"):
-                dirpath = f'{dirpath}/copied_z'
-                await makedirs(dirpath, exist_ok=True)
-                new_path = ospath.join(dirpath, f"{name}{ext}")
-                self.__up_path = await copy(self.__up_path, new_path)
-            else:
-                new_path = ospath.join(dirpath, f"{name}{ext}")
-                await aiorename(self.__up_path, new_path)
-                self.__up_path = new_path
-        return cap_mono1
-        
     def __get_input_media(self, subkey, key):
         rlist = []
         for msg in self.__media_dict[key][subkey]:
@@ -359,7 +314,6 @@ class TgUploader:
                         return
                     self.__prm_media = True if f_size > 2097152000 else False
                     cap_mono, file_ = await self.__prepare_file(file_, dirpath)
-                    cap_mono1, file_1 = await self.__prepare_filex(file_1, dirpath)
                     if self.__last_msg_in_group:
                         group_lists = [x for v in self.__media_dict.values()
                                        for x in v.keys()]
@@ -372,7 +326,6 @@ class TgUploader:
                     self.__last_uploaded = 0
                     await self.__switching_client()
                     await self.__upload_file(cap_mono, file_)
-                    await self.__upload_file(cap_mono1, file_1)
                     if self.__leechmsg and not isDeleted and config_dict['CLEAN_LOG_MSG']:
                         await deleteMessage(list(self.__leechmsg.values())[0])
                         isDeleted = True
@@ -416,7 +369,7 @@ class TgUploader:
 
     @retry(wait=wait_exponential(multiplier=2, min=4, max=8), stop=stop_after_attempt(3),
            retry=retry_if_exception_type(Exception))
-    async def __upload_file(self, cap_mono, cap_mono1, file, force_document=False):
+    async def __upload_file(self, cap_mono, file, force_document=False):
         if self.__thumb is not None and not await aiopath.exists(self.__thumb):
             self.__thumb = None
         thumb = self.__thumb
@@ -447,15 +400,6 @@ class TgUploader:
                                                                        document=self.__up_path,
                                                                        thumb=thumb,
                                                                        caption=cap_mono,
-                                                                       force_document=True,
-                                                                       disable_notification=True,
-                                                                       progress=self.__upload_progress,
-                                                                       reply_markup=buttons)
-                nrml_media = await self.__client.send_document(chat_id=self.__sent_msg.chat.id,
-                                                                       reply_to_message_id=self.__sent_msg.id,
-                                                                       document=self.__up_path,
-                                                                       thumb=thumb,
-                                                                       caption=cap_mono1,
                                                                        force_document=True,
                                                                        disable_notification=True,
                                                                        progress=self.__upload_progress,
